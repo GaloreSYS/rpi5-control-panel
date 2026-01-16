@@ -1,61 +1,38 @@
-const admin = require('firebase-admin');
 const express = require('express');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid'); // Optional: npm install uuid
 
-// 1. DATABASE CONFIGURATION
-// Use environment variable for Firebase credentials on Render
-let serviceAccount;
-
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  // On Render: Use environment variable
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-} else {
-  // Local development: Use JSON file
-  serviceAccount = require("./serviceAccountKey.json");
-}
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-const db = admin.firestore();
 const app = express();
+
+// --- IN-MEMORY DATABASE REPLACEMENT ---
+// This replaces the Firestore 'lockQueue' collection
+let lockQueue = []; 
 
 // 2. MIDDLEWARE
 app.use(express.json());
-app.use(express.static('public')); // Serves CSS/JS from public folder
+app.use(express.static('public')); 
 
-// 3. SERVE FRONTEND (index.html)
+// 3. SERVE FRONTEND
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // 4. API: CHECK QUEUE STATUS (For Website)
-app.get('/api/status', async (req, res) => {
+app.get('/api/status', (req, res) => {
   try {
-    const queueSnapshot = await db.collection('lockQueue')
-      .where('status', '==', 'pending')
-      .orderBy('timestamp', 'asc')
-      .get();
-    
-    const processingSnapshot = await db.collection('lockQueue')
-      .where('status', '==', 'processing')
-      .limit(1)
-      .get();
-    
     const userId = req.query.userId;
-    let yourPosition = 0;
     
-    queueSnapshot.forEach((doc, index) => {
-      if (doc.data().userId === userId) {
-        yourPosition = index + 1;
-      }
-    });
+    const pendingCommands = lockQueue.filter(cmd => cmd.status === 'pending');
+    const processingCommand = lockQueue.find(cmd => cmd.status === 'processing');
+    
+    // Find user's position in the pending queue
+    const userIndex = pendingCommands.findIndex(cmd => cmd.userId === userId);
+    const yourPosition = userIndex !== -1 ? userIndex + 1 : 0;
     
     res.json({
-      isProcessing: !processingSnapshot.empty,
-      queueLength: queueSnapshot.size,
-      currentUser: processingSnapshot.empty ? null : processingSnapshot.docs[0].data().userId,
+      isProcessing: !!processingCommand,
+      queueLength: pendingCommands.length,
+      currentUser: processingCommand ? processingCommand.userId : null,
       yourPosition
     });
   } catch (error) {
@@ -70,23 +47,38 @@ app.post('/api/action', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid input' });
   }
   
+  const commandId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+  
+  const newCommand = {
+    id: commandId,
+    button,
+    userId,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+
+  lockQueue.push(newCommand);
+  
   try {
-    const commandRef = await db.collection('lockQueue').add({
-      button,
-      userId,
-      status: 'pending',
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      createdAt: new Date().toISOString()
-    });
-    
-    // Listen for the RPi5 to update the status to 'completed'
+    // Polling simulation for the 'completed' status (Replaces Firestore onSnapshot)
     const result = await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => { unsubscribe(); reject(new Error('Timeout')); }, 60000);
-      const unsubscribe = commandRef.onSnapshot(doc => {
-        const data = doc.data();
-        if (data.status === 'completed') { resolve(data); unsubscribe(); clearTimeout(timeout); }
-        else if (data.status === 'failed') { reject(new Error('Failed')); unsubscribe(); clearTimeout(timeout); }
-      });
+      const timeout = setTimeout(() => {
+        clearInterval(poll);
+        reject(new Error('Timeout: RPi5 did not respond'));
+      }, 60000);
+
+      const poll = setInterval(() => {
+        const cmd = lockQueue.find(c => c.id === commandId);
+        if (cmd && cmd.status === 'completed') {
+          clearInterval(poll);
+          clearTimeout(timeout);
+          resolve(cmd);
+        } else if (cmd && cmd.status === 'failed') {
+          clearInterval(poll);
+          clearTimeout(timeout);
+          reject(new Error('Action failed on RPi5'));
+        }
+      }, 500);
     });
 
     res.json({ success: true, message: `Lock ${button} opened`, timestamp: result.completedAt });
@@ -96,43 +88,42 @@ app.post('/api/action', async (req, res) => {
 });
 
 // 6. RPi5: GET NEXT COMMAND
-app.get('/api/rpi/next-command', async (req, res) => {
-  try {
-    const snapshot = await db.collection('lockQueue')
-      .where('status', '==', 'pending')
-      .orderBy('timestamp', 'asc')
-      .limit(1)
-      .get();
-    
-    if (snapshot.empty) return res.json({ command: null });
-    
-    const doc = snapshot.docs[0];
-    await doc.ref.update({ status: 'processing', processingAt: new Date().toISOString() });
-    
-    res.json({ command: { id: doc.id, button: doc.data().button, userId: doc.data().userId } });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+app.get('/api/rpi/next-command', (req, res) => {
+  const nextIndex = lockQueue.findIndex(cmd => cmd.status === 'pending');
+  
+  if (nextIndex === -1) return res.json({ command: null });
+  
+  // Update status to processing
+  lockQueue[nextIndex].status = 'processing';
+  lockQueue[nextIndex].processingAt = new Date().toISOString();
+  
+  const cmd = lockQueue[nextIndex];
+  res.json({ command: { id: cmd.id, button: cmd.button, userId: cmd.userId } });
 });
 
 // 7. RPi5: MARK AS COMPLETE
-app.post('/api/rpi/complete', async (req, res) => {
+app.post('/api/rpi/complete', (req, res) => {
   const { commandId, success, error } = req.body;
-  try {
-    await db.collection('lockQueue').doc(commandId).update({
-      status: success ? 'completed' : 'failed',
-      completedAt: new Date().toISOString(),
-      error: error || null
-    });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  const cmdIndex = lockQueue.findIndex(cmd => cmd.id === commandId);
+  
+  if (cmdIndex !== -1) {
+    lockQueue[cmdIndex].status = success ? 'completed' : 'failed';
+    lockQueue[cmdIndex].completedAt = new Date().toISOString();
+    lockQueue[cmdIndex].error = error || null;
+
+    // Optional: Clean up memory by removing very old completed items after a delay
+    setTimeout(() => {
+        lockQueue = lockQueue.filter(cmd => cmd.id !== commandId);
+    }, 10000);
+
+    return res.json({ success: true });
   }
+  
+  res.status(404).json({ error: "Command not found" });
 });
 
 // 8. START SERVER
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is live on port ${PORT}`);
-  console.log('Ready to handle Website and RPi5 communication.');
+  console.log(`Server live on port ${PORT} (Direct Mode - No Firebase)`);
 });
