@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPi5 Control Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: clamp(24px, 5vw, 32px);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      background: white;
+      border: none;
+      border-radius: 12px;
+      padding: 30px 20px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #667eea;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      touch-action: manipulation;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn.active {
+      background: #48bb78;
+      color: white;
+    }
+
+    .status {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 15px;
+      color: white;
+      text-align: center;
+      font-size: 14px;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 480px) {
+      .btn {
+        padding: 25px 15px;
+        font-size: 16px;
+      }
+      
+      .grid {
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 RPi5 Control Panel</h1>
+    
+    <div class="grid">
+      <button class="btn" onclick="handleButton(1)">Button 1</button>
+      <button class="btn" onclick="handleButton(2)">Button 2</button>
+      <button class="btn" onclick="handleButton(3)">Button 3</button>
+      <button class="btn" onclick="handleButton(4)">Button 4</button>
+      <button class="btn" onclick="handleButton(5)">Button 5</button>
+      <button class="btn" onclick="handleButton(6)">Button 6</button>
+      <button class="btn" onclick="handleButton(7)">Button 7</button>
+      <button class="btn" onclick="handleButton(8)">Button 8</button>
+    </div>
+
+    <div class="status" id="status">Ready</div>
+  </div>
+
+  <script>
+    const status = document.getElementById('status');
+    const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    let checkInterval;
+
+    // Check queue status periodically
+    function checkQueueStatus() {
+      fetch(`/api/status?userId=${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.yourPosition > 0) {
+            status.textContent = `⏳ You are #${data.yourPosition} in queue (${data.queueLength} waiting)`;
+          } else if (data.isProcessing && data.currentUser === userId) {
+            status.textContent = `🔄 Processing your request...`;
+          } else if (data.queueLength > 0) {
+            status.textContent = `⏳ ${data.queueLength} request(s) in queue`;
+          }
+        })
+        .catch(() => {});
+    }
+
+    async function handleButton(num) {
+      const btn = event.target;
+      btn.classList.add('active');
+      
+      status.textContent = `⏳ Adding to queue...`;
+      
+      // Start checking queue status
+      checkInterval = setInterval(checkQueueStatus, 500);
+      
+      try {
+        const response = await fetch('/api/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ button: num, userId })
+        });
+        
+        const data = await response.json();
+        status.textContent = `✅ ${data.message}`;
+        
+        setTimeout(() => {
+          btn.classList.remove('active');
+          status.textContent = 'Ready';
+        }, 2000);
+      } catch (error) {
+        status.textContent = '❌ Error: ' + error.message;
+        btn.classList.remove('active');
+      } finally {
+        clearInterval(checkInterval);
+      }
+    }
+  </script>
+</body>
+</html>

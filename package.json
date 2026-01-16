@@ -1,0 +1,16 @@
+{
+  "name": "rpi5-control-server",
+  "version": "1.0.0",
+  "description": "RPi5 Control Panel with Firebase Queue",
+  "main": "Server.js",
+  "scripts": {
+    "start": "node Server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "firebase-admin": "^12.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
