@@ -3,41 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RPi5 Quiz Control</title>
+  <title>India GK Quiz Lock</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
       min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 20px;
     }
     .container {
       max-width: 500px; width: 100%; background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px); padding: 30px; border-radius: 20px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: white; text-align: center;
+      backdrop-filter: blur(15px); padding: 30px; border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3); color: white; text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
     }
-    h1 { margin-bottom: 20px; font-size: 24px; }
+    h1 { margin-bottom: 25px; font-size: 26px; text-transform: uppercase; letter-spacing: 2px; }
     .quiz-container { text-align: left; margin-bottom: 20px; }
-    .question { font-size: 18px; margin-bottom: 15px; font-weight: 600; }
+    .question { font-size: 18px; margin-bottom: 20px; font-weight: 600; line-height: 1.4; }
     .option-btn {
-      display: block; width: 100%; padding: 12px; margin: 8px 0;
-      background: white; border: none; border-radius: 8px;
-      color: #667eea; font-weight: 600; cursor: pointer; transition: 0.3s;
+      display: block; width: 100%; padding: 14px; margin: 10px 0;
+      background: rgba(255, 255, 255, 0.9); border: none; border-radius: 10px;
+      color: #1e3c72; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      text-align: left; font-size: 16px;
     }
-    .option-btn:hover { background: #f0f0f0; }
+    .option-btn:hover { background: #fff; transform: translateY(-2px); }
     .option-btn.selected { background: #48bb78; color: white; }
     .next-btn {
-      margin-top: 15px; padding: 12px 30px; border-radius: 8px; border: none;
-      background: #ffcc00; color: #333; font-weight: bold; cursor: pointer; width: 100%;
+      margin-top: 20px; padding: 15px; border-radius: 10px; border: none;
+      background: #f6ad55; color: #fff; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%;
     }
-    .status { margin-top: 20px; font-size: 14px; min-height: 20px; opacity: 0.9; }
+    .status { margin-top: 25px; font-size: 15px; font-weight: 500; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
     .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🧠 RPi5 Quiz Lock</h1>
+    <h1>🇮🇳 India GK Quiz</h1>
     
     <div id="quiz-box">
       <div class="quiz-container">
@@ -49,23 +51,24 @@
 
     <div id="result-box" class="hidden">
       <h2 id="score-text"></h2>
-      <p id="action-text"></p>
+      <p id="action-text" style="margin: 15px 0; font-size: 18px;"></p>
+      <button class="next-btn" onclick="location.reload()">Restart Quiz</button>
     </div>
 
-    <div class="status" id="status">Ready</div>
+    <div class="status" id="status">System Status: Ready</div>
   </div>
 
   <script>
     const userId = 'user_' + Math.random().toString(36).substr(2, 9);
     const status = document.getElementById('status');
     
-    // 1. CONFIGURATION: Quiz Questions
+    // QUIZ DATA: India & South India GK
     const questions = [
-      { q: "What is the capital of France?", a: 0, options: ["Paris", "London", "Berlin", "Madrid"] },
-      { q: "What is 5 + 7?", a: 2, options: ["10", "11", "12", "13"] },
-      { q: "Which planet is known as the Red Planet?", a: 1, options: ["Venus", "Mars", "Jupiter", "Saturn"] },
-      { q: "What is the boiling point of water?", a: 0, options: ["100°C", "90°C", "80°C", "120°C"] },
-      { q: "How many legs does a spider have?", a: 3, options: ["6", "4", "10", "8"] }
+      { q: "Which South Indian city is known as the 'Silicon Valley of India'?", a: 2, options: ["Hyderabad", "Chennai", "Bengaluru", "Kochi"] },
+      { q: "The historic Charminar is located in which Indian city?", a: 0, options: ["Hyderabad", "Mysuru", "Vijayawada", "Madurai"] },
+      { q: "Which is the longest river in South India?", a: 1, options: ["Cauvery", "Godavari", "Krishna", "Tungabhadra"] },
+      { q: "ISRO's Satish Dhawan Space Centre is located in which state?", a: 3, options: ["Kerala", "Karnataka", "Tamil Nadu", "Andhra Pradesh"] },
+      { q: "Which classical dance form originated in Kerala?", a: 1, options: ["Bharatanatyam", "Kathakali", "Kuchipudi", "Odissi"] }
     ];
 
     let currentQuestionIndex = 0;
@@ -74,7 +77,7 @@
 
     function loadQuestion() {
       const qData = questions[currentQuestionIndex];
-      document.getElementById('question-text').textContent = `Question ${currentQuestionIndex + 1}: ${qData.q}`;
+      document.getElementById('question-text').textContent = `Q${currentQuestionIndex + 1}: ${qData.q}`;
       const container = document.getElementById('options-container');
       container.innerHTML = '';
       
@@ -82,30 +85,25 @@
         const btn = document.createElement('button');
         btn.className = 'option-btn';
         btn.textContent = opt;
-        btn.onclick = () => selectOption(index, btn);
+        btn.onclick = () => {
+          document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedOption = index;
+        };
         container.appendChild(btn);
       });
       selectedOption = null;
     }
 
-    function selectOption(index, btn) {
-      document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedOption = index;
-    }
-
     function nextQuestion() {
       if (selectedOption === null) {
-        alert("Please select an answer!");
+        alert("Select an answer to continue!");
         return;
       }
 
-      if (selectedOption === questions[currentQuestionIndex].a) {
-        score++;
-      }
+      if (selectedOption === questions[currentQuestionIndex].a) score++;
 
       currentQuestionIndex++;
-
       if (currentQuestionIndex < questions.length) {
         loadQuestion();
       } else {
@@ -116,32 +114,29 @@
     async function showResults() {
       document.getElementById('quiz-box').classList.add('hidden');
       document.getElementById('result-box').classList.remove('hidden');
-      document.getElementById('score-text').textContent = `You scored ${score} out of 5!`;
+      document.getElementById('score-text').textContent = `Score: ${score}/5`;
       
       let lockToOpen = null;
 
-      // 2. LOGIC: Decide which lock to open
+      // Lock Logic
       if (score >= 1 && score <= 3) {
-        // Correct answers 1, 2, or 3 -> Open Lock 1, 2, 3, or 4 randomly
-        lockToOpen = Math.floor(Math.random() * 4) + 1;
+        lockToOpen = Math.floor(Math.random() * 4) + 1; // Random 1-4
       } else if (score === 4) {
-        // 4 Correct answers -> Open Lock 5 or 6 randomly
-        lockToOpen = Math.floor(Math.random() * 2) + 5;
+        lockToOpen = Math.floor(Math.random() * 2) + 5; // Random 5-6
       } else if (score === 5) {
-        // 5 Correct answers -> Open Lock 7 or 8 randomly
-        lockToOpen = Math.floor(Math.random() * 2) + 7;
+        lockToOpen = Math.floor(Math.random() * 2) + 7; // Random 7-8
       }
 
       if (lockToOpen) {
-        document.getElementById('action-text').textContent = `Opening Lock ${lockToOpen}...`;
+        document.getElementById('action-text').textContent = `Reward: Opening Lock ${lockToOpen}`;
         await triggerLock(lockToOpen);
       } else {
-        document.getElementById('action-text').textContent = "No locks opened. Try again!";
+        document.getElementById('action-text').textContent = "Better luck next time! No locks opened.";
       }
     }
 
     async function triggerLock(num) {
-      status.textContent = `⏳ Sending command to RPi5...`;
+      status.textContent = `⏳ Commanding RPi5 to open Lock ${num}...`;
       try {
         const response = await fetch('/api/action', {
           method: 'POST',
@@ -149,13 +144,12 @@
           body: JSON.stringify({ button: num, userId })
         });
         const data = await response.json();
-        status.textContent = `✅ ${data.message}`;
+        status.textContent = `✅ Success: Lock ${num} is open for 5s`;
       } catch (error) {
-        status.textContent = '❌ Error: ' + error.message;
+        status.textContent = '❌ System Error: ' + error.message;
       }
     }
 
-    // Start the quiz
     loadQuestion();
   </script>
 </body>
