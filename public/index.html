@@ -62,13 +62,14 @@
     const userId = 'user_' + Math.random().toString(36).substr(2, 9);
     const status = document.getElementById('status');
     
-    // QUIZ DATA: India & South India GK
+    // QUIZ DATA
     const questions = [
       { q: "Which South Indian city is known as the 'Silicon Valley of India'?", a: 2, options: ["Hyderabad", "Chennai", "Bengaluru", "Kochi"] },
       { q: "The historic Charminar is located in which Indian city?", a: 0, options: ["Hyderabad", "Mysuru", "Vijayawada", "Madurai"] },
       { q: "Which is the longest river in South India?", a: 1, options: ["Cauvery", "Godavari", "Krishna", "Tungabhadra"] },
       { q: "ISRO's Satish Dhawan Space Centre is located in which state?", a: 3, options: ["Kerala", "Karnataka", "Tamil Nadu", "Andhra Pradesh"] },
-      { q: "Which classical dance form originated in Kerala?", a: 1, options: ["Bharatanatyam", "Kathakali", "Kuchipudi", "Odissi"] }
+      // TOUGH NORTH INDIAN QUESTION
+      { q: "In which North Indian city is the 'Adhai Din Ka Jhonpra', one of the oldest mosques in India, located?", a: 2, options: ["Delhi", "Lucknow", "Ajmer", "Agra"] }
     ];
 
     let currentQuestionIndex = 0;
@@ -118,20 +119,23 @@
       
       let lockToOpen = null;
 
-      // Lock Logic
+      // Lock Selection Logic
       if (score >= 1 && score <= 3) {
-        lockToOpen = Math.floor(Math.random() * 4) + 1; // Random 1-4
+        // Randomly pick lock 1, 2, 3, or 4
+        lockToOpen = Math.floor(Math.random() * 4) + 1;
       } else if (score === 4) {
-        lockToOpen = Math.floor(Math.random() * 2) + 5; // Random 5-6
+        // Randomly pick lock 5 or 6
+        lockToOpen = Math.floor(Math.random() * 2) + 5;
       } else if (score === 5) {
-        lockToOpen = Math.floor(Math.random() * 2) + 7; // Random 7-8
+        // Randomly pick lock 7 or 8
+        lockToOpen = Math.floor(Math.random() * 2) + 7;
       }
 
       if (lockToOpen) {
-        document.getElementById('action-text').textContent = `Reward: Opening Lock ${lockToOpen}`;
+        document.getElementById('action-text').textContent = `Opening Lock ${lockToOpen}...`;
         await triggerLock(lockToOpen);
       } else {
-        document.getElementById('action-text').textContent = "Better luck next time! No locks opened.";
+        document.getElementById('action-text').textContent = "No locks opened. Try again!";
       }
     }
 
@@ -144,7 +148,7 @@
           body: JSON.stringify({ button: num, userId })
         });
         const data = await response.json();
-        status.textContent = `✅ Success: Lock ${num} is open for 5s`;
+        status.textContent = `✅ ${data.message}`;
       } catch (error) {
         status.textContent = '❌ System Error: ' + error.message;
       }
