@@ -3,37 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz</title>
+  <title>GK Quiz</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%);
       min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 20px;
     }
     .container {
-      max-width: 500px; width: 100%; background: rgba(255, 255, 255, 0.1);
+      max-width: 500px; width: 100%; background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(15px); padding: 30px; border-radius: 20px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.3); color: white; text-align: center;
       border: 1px solid rgba(255,255,255,0.2);
     }
-    h1 { margin-bottom: 25px; font-size: 26px; text-transform: uppercase; letter-spacing: 2px; }
+    h1 { margin-bottom: 25px; font-size: 26px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
     .quiz-container { text-align: left; margin-bottom: 20px; }
     .question { font-size: 18px; margin-bottom: 20px; font-weight: 600; line-height: 1.4; }
     .option-btn {
       display: block; width: 100%; padding: 14px; margin: 10px 0;
-      background: rgba(255, 255, 255, 0.9); border: none; border-radius: 10px;
-      color: #1e3c72; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      background: rgba(255, 255, 255, 0.95); border: none; border-radius: 10px;
+      color: #1a2a6c; font-weight: 600; cursor: pointer; transition: all 0.2s;
       text-align: left; font-size: 16px;
     }
-    .option-btn:hover { background: #fff; transform: translateY(-2px); }
+    .option-btn:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
     .option-btn.selected { background: #48bb78; color: white; }
     .next-btn {
       margin-top: 20px; padding: 15px; border-radius: 10px; border: none;
-      background: #f6ad55; color: #fff; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%;
+      background: #ffcc00; color: #333; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%;
+      box-shadow: 0 4px 0 #ccaa00;
     }
-    .status { margin-top: 25px; font-size: 15px; font-weight: 500; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+    .next-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #ccaa00; }
+    .status { margin-top: 25px; font-size: 15px; font-weight: 500; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; }
     .hidden { display: none; }
   </style>
 </head>
@@ -51,7 +53,7 @@
 
     <div id="result-box" class="hidden">
       <h2 id="score-text"></h2>
-      <p id="action-text" style="margin: 15px 0; font-size: 18px;"></p>
+      <p id="action-text" style="margin: 15px 0; font-size: 18px; font-weight: bold;"></p>
       <button class="next-btn" onclick="location.reload()">Restart Quiz</button>
     </div>
 
@@ -62,14 +64,14 @@
     const userId = 'user_' + Math.random().toString(36).substr(2, 9);
     const status = document.getElementById('status');
     
-    // QUIZ DATA
+    // UPDATED QUIZ DATA: Mixed India GK with tough North India question
     const questions = [
       { q: "Which South Indian city is known as the 'Silicon Valley of India'?", a: 2, options: ["Hyderabad", "Chennai", "Bengaluru", "Kochi"] },
       { q: "The historic Charminar is located in which Indian city?", a: 0, options: ["Hyderabad", "Mysuru", "Vijayawada", "Madurai"] },
       { q: "Which is the longest river in South India?", a: 1, options: ["Cauvery", "Godavari", "Krishna", "Tungabhadra"] },
       { q: "ISRO's Satish Dhawan Space Centre is located in which state?", a: 3, options: ["Kerala", "Karnataka", "Tamil Nadu", "Andhra Pradesh"] },
-      // TOUGH NORTH INDIAN QUESTION
-      { q: "In which North Indian city is the 'Adhai Din Ka Jhonpra', one of the oldest mosques in India, located?", a: 2, options: ["Delhi", "Lucknow", "Ajmer", "Agra"] }
+      // TOUGH NORTH INDIAN QUESTION: Ancient Architecture/Engineering
+      { q: "Which site in Bihar contains the oldest surviving rock-cut caves in India, famous for their 'Mauryan Polish' mirror-like finish?", a: 0, options: ["Barabar Caves", "Udayagiri Caves", "Bhimbetka Shelters", "Pandav Leni"] }
     ];
 
     let currentQuestionIndex = 0;
@@ -101,9 +103,7 @@
         alert("Select an answer to continue!");
         return;
       }
-
       if (selectedOption === questions[currentQuestionIndex].a) score++;
-
       currentQuestionIndex++;
       if (currentQuestionIndex < questions.length) {
         loadQuestion();
@@ -115,27 +115,24 @@
     async function showResults() {
       document.getElementById('quiz-box').classList.add('hidden');
       document.getElementById('result-box').classList.remove('hidden');
-      document.getElementById('score-text').textContent = `Score: ${score}/5`;
+      document.getElementById('score-text').textContent = `Final Score: ${score}/5`;
       
       let lockToOpen = null;
 
       // Lock Selection Logic
       if (score >= 1 && score <= 3) {
-        // Randomly pick lock 1, 2, 3, or 4
-        lockToOpen = Math.floor(Math.random() * 4) + 1;
+        lockToOpen = Math.floor(Math.random() * 4) + 1; // Random 1, 2, 3, or 4
       } else if (score === 4) {
-        // Randomly pick lock 5 or 6
-        lockToOpen = Math.floor(Math.random() * 2) + 5;
+        lockToOpen = Math.floor(Math.random() * 2) + 5; // Random 5 or 6
       } else if (score === 5) {
-        // Randomly pick lock 7 or 8
-        lockToOpen = Math.floor(Math.random() * 2) + 7;
+        lockToOpen = Math.floor(Math.random() * 2) + 7; // Random 7 or 8
       }
 
       if (lockToOpen) {
-        document.getElementById('action-text').textContent = `Opening Lock ${lockToOpen}...`;
+        document.getElementById('action-text').textContent = `Reward: Opening Lock ${lockToOpen}`;
         await triggerLock(lockToOpen);
       } else {
-        document.getElementById('action-text').textContent = "No locks opened. Try again!";
+        document.getElementById('action-text').textContent = "No locks opened. Score higher to unlock!";
       }
     }
 
@@ -148,7 +145,7 @@
           body: JSON.stringify({ button: num, userId })
         });
         const data = await response.json();
-        status.textContent = `✅ ${data.message}`;
+        status.textContent = `✅ Result: Lock ${num} opened for 5s`;
       } catch (error) {
         status.textContent = '❌ System Error: ' + error.message;
       }
