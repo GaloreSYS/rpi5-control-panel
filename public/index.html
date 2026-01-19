@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GK Quiz</title>
+  <title>Quiz</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -18,9 +18,9 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.3); color: white; text-align: center;
       border: 1px solid rgba(255,255,255,0.2);
     }
-    h1 { margin-bottom: 25px; font-size: 26px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+    h1 { margin-bottom: 25px; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
     .quiz-container { text-align: left; margin-bottom: 20px; }
-    .question { font-size: 18px; margin-bottom: 20px; font-weight: 600; line-height: 1.4; }
+    .question { font-size: 18px; margin-bottom: 20px; font-weight: 600; line-height: 1.4; min-height: 60px; }
     .option-btn {
       display: block; width: 100%; padding: 14px; margin: 10px 0;
       background: rgba(255, 255, 255, 0.95); border: none; border-radius: 10px;
@@ -28,14 +28,14 @@
       text-align: left; font-size: 16px;
     }
     .option-btn:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-    .option-btn.selected { background: #48bb78; color: white; }
+    .option-btn.selected { background: #48bb78; color: white; border: 2px solid white; }
     .next-btn {
       margin-top: 20px; padding: 15px; border-radius: 10px; border: none;
       background: #ffcc00; color: #333; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%;
       box-shadow: 0 4px 0 #ccaa00;
     }
     .next-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #ccaa00; }
-    .status { margin-top: 25px; font-size: 15px; font-weight: 500; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; }
+    .status { margin-top: 25px; font-size: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; }
     .hidden { display: none; }
   </style>
 </head>
@@ -57,21 +57,19 @@
       <button class="next-btn" onclick="location.reload()">Restart Quiz</button>
     </div>
 
-    <div class="status" id="status">System Status: Ready</div>
+    <div class="status" id="status">System Status: Connected</div>
   </div>
 
   <script>
     const userId = 'user_' + Math.random().toString(36).substr(2, 9);
     const status = document.getElementById('status');
     
-    // UPDATED QUIZ DATA: Mixed India GK with tough North India question
     const questions = [
       { q: "Which South Indian city is known as the 'Silicon Valley of India'?", a: 2, options: ["Hyderabad", "Chennai", "Bengaluru", "Kochi"] },
       { q: "The historic Charminar is located in which Indian city?", a: 0, options: ["Hyderabad", "Mysuru", "Vijayawada", "Madurai"] },
       { q: "Which is the longest river in South India?", a: 1, options: ["Cauvery", "Godavari", "Krishna", "Tungabhadra"] },
       { q: "ISRO's Satish Dhawan Space Centre is located in which state?", a: 3, options: ["Kerala", "Karnataka", "Tamil Nadu", "Andhra Pradesh"] },
-      // TOUGH NORTH INDIAN QUESTION: Ancient Architecture/Engineering
-      { q: "Which site in Bihar contains the oldest surviving rock-cut caves in India, famous for their 'Mauryan Polish' mirror-like finish?", a: 0, options: ["Barabar Caves", "Udayagiri Caves", "Bhimbetka Shelters", "Pandav Leni"] }
+      { q: "Which North Indian site contains the oldest rock-cut caves in India, famous for their 'Mauryan Polish' mirror finish?", a: 0, options: ["Barabar Caves", "Udayagiri Caves", "Bhimbetka Shelters", "Pandav Leni"] }
     ];
 
     let currentQuestionIndex = 0;
@@ -99,17 +97,10 @@
     }
 
     function nextQuestion() {
-      if (selectedOption === null) {
-        alert("Select an answer to continue!");
-        return;
-      }
+      if (selectedOption === null) { alert("Select an answer!"); return; }
       if (selectedOption === questions[currentQuestionIndex].a) score++;
       currentQuestionIndex++;
-      if (currentQuestionIndex < questions.length) {
-        loadQuestion();
-      } else {
-        showResults();
-      }
+      if (currentQuestionIndex < questions.length) { loadQuestion(); } else { showResults(); }
     }
 
     async function showResults() {
@@ -118,26 +109,25 @@
       document.getElementById('score-text').textContent = `Final Score: ${score}/5`;
       
       let lockToOpen = null;
-
-      // Lock Selection Logic
       if (score >= 1 && score <= 3) {
-        lockToOpen = Math.floor(Math.random() * 4) + 1; // Random 1, 2, 3, or 4
+        lockToOpen = Math.floor(Math.random() * 4) + 1; // 1, 2, 3, or 4
       } else if (score === 4) {
-        lockToOpen = Math.floor(Math.random() * 2) + 5; // Random 5 or 6
+        lockToOpen = Math.floor(Math.random() * 2) + 5; // 5 or 6
       } else if (score === 5) {
-        lockToOpen = Math.floor(Math.random() * 2) + 7; // Random 7 or 8
+        // FIXED LOGIC: 50% chance for Door 7 or Door 8
+        lockToOpen = Math.random() < 0.5 ? 7 : 8;
       }
 
       if (lockToOpen) {
-        document.getElementById('action-text').textContent = `Reward: Opening Lock ${lockToOpen}`;
-        await triggerLock(lockToOpen);
+        document.getElementById('action-text').textContent = `Reward: Opening Door ${lockToOpen}`;
+        triggerLock(lockToOpen);
       } else {
-        document.getElementById('action-text').textContent = "No locks opened. Score higher to unlock!";
+        document.getElementById('action-text').textContent = "Score 1 or more to open a door!";
       }
     }
 
     async function triggerLock(num) {
-      status.textContent = `⏳ Commanding RPi5 to open Lock ${num}...`;
+      status.textContent = `⏳ Sending command for Door ${num}...`;
       try {
         const response = await fetch('/api/action', {
           method: 'POST',
@@ -145,9 +135,9 @@
           body: JSON.stringify({ button: num, userId })
         });
         const data = await response.json();
-        status.textContent = `✅ Result: Lock ${num} opened for 5s`;
+        status.textContent = `✅ Result: ${data.message}`;
       } catch (error) {
-        status.textContent = '❌ System Error: ' + error.message;
+        status.textContent = '❌ Connection Error: ' + error.message;
       }
     }
 
