@@ -3,45 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz</title>
+  <title>Pink & Creamy Quiz Control</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      /* Creamy White to Soft Pink Gradient */
+      background: linear-gradient(135deg, #fff5f6 0%, #ffd1dc 100%);
       min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 20px;
     }
+
     .container {
-      max-width: 500px; width: 100%; background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(15px); padding: 30px; border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3); color: white; text-align: center;
-      border: 1px solid rgba(255,255,255,0.2);
+      max-width: 500px; width: 100%; 
+      background: #ffffff; /* Pure White Container */
+      padding: 40px; border-radius: 30px;
+      box-shadow: 0 15px 35px rgba(255, 182, 193, 0.4); 
+      color: #5d5d5d; text-align: center;
+      border: 2px solid #ffdae0;
     }
-    h1 { margin-bottom: 25px; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
+
+    h1 { 
+      margin-bottom: 25px; font-size: 28px; 
+      color: #ff69b4; /* Hot Pink Title */
+      text-transform: capitalize; 
+    }
+
     .quiz-container { text-align: left; margin-bottom: 20px; }
-    .question { font-size: 18px; margin-bottom: 20px; font-weight: 600; line-height: 1.4; min-height: 60px; }
+
+    .question { 
+      font-size: 19px; margin-bottom: 20px; font-weight: 600; 
+      line-height: 1.5; color: #4a4a4a; min-height: 60px;
+    }
+
     .option-btn {
-      display: block; width: 100%; padding: 14px; margin: 10px 0;
-      background: rgba(255, 255, 255, 0.95); border: none; border-radius: 10px;
-      color: #1a2a6c; font-weight: 600; cursor: pointer; transition: all 0.2s;
-      text-align: left; font-size: 16px;
+      display: block; width: 100%; padding: 15px; margin: 12px 0;
+      background: #fffafa; /* Creamy White Button */
+      border: 2px solid #ffeff2; border-radius: 15px;
+      color: #ff69b4; font-weight: 600; cursor: pointer; 
+      transition: all 0.3s ease; text-align: left; font-size: 16px;
     }
-    .option-btn:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-    .option-btn.selected { background: #48bb78; color: white; border: 2px solid white; }
+
+    .option-btn:hover { 
+      background: #ffe4e8; 
+      transform: scale(1.02);
+      border-color: #ffb6c1;
+    }
+
+    .option-btn.selected { 
+      background: #ff69b4; 
+      color: white; 
+      border-color: #ff1493;
+      box-shadow: 0 5px 15px rgba(255, 105, 180, 0.3);
+    }
+
     .next-btn {
-      margin-top: 20px; padding: 15px; border-radius: 10px; border: none;
-      background: #ffcc00; color: #333; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%;
-      box-shadow: 0 4px 0 #ccaa00;
+      margin-top: 20px; padding: 16px; border-radius: 15px; border: none;
+      background: #ff69b4; color: #fff; font-size: 18px; 
+      font-weight: bold; cursor: pointer; width: 100%;
+      box-shadow: 0 8px 20px rgba(255, 105, 180, 0.3);
+      transition: background 0.3s;
     }
-    .next-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #ccaa00; }
-    .status { margin-top: 25px; font-size: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; }
+
+    .next-btn:hover { background: #ff1493; }
+
+    .status { 
+      margin-top: 25px; font-size: 13px; font-weight: bold;
+      color: #ffb6c1; letter-spacing: 1px;
+    }
+
     .hidden { display: none; }
+
+    #score-text { color: #ff69b4; font-size: 32px; margin-bottom: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Quiz</h1>
+    <h1>🌸 Master Quiz</h1>
     
     <div id="quiz-box">
       <div class="quiz-container">
@@ -53,31 +92,61 @@
 
     <div id="result-box" class="hidden">
       <h2 id="score-text"></h2>
-      <p id="action-text" style="margin: 15px 0; font-size: 18px; font-weight: bold;"></p>
-      <button class="next-btn" onclick="location.reload()">Restart Quiz</button>
+      <p id="action-text" style="margin: 15px 0; font-size: 18px; font-weight: bold; color: #ff1493;"></p>
+      <button class="next-btn" onclick="location.reload()">Try Again 🔄</button>
     </div>
 
-    <div class="status" id="status">System Status: Connected</div>
+    <div class="status" id="status">Ready To Play</div>
   </div>
 
   <script>
     const userId = 'user_' + Math.random().toString(36).substr(2, 9);
     const status = document.getElementById('status');
     
-    const questions = [
-      { q: "Which South Indian city is known as the 'Silicon Valley of India'?", a: 2, options: ["Hyderabad", "Chennai", "Bengaluru", "Kochi"] },
-      { q: "The historic Charminar is located in which Indian city?", a: 0, options: ["Hyderabad", "Mysuru", "Vijayawada", "Madurai"] },
-      { q: "Which is the longest river in South India?", a: 1, options: ["Cauvery", "Godavari", "Krishna", "Tungabhadra"] },
-      { q: "ISRO's Satish Dhawan Space Centre is located in which state?", a: 3, options: ["Kerala", "Karnataka", "Tamil Nadu", "Andhra Pradesh"] },
-      { q: "Which North Indian site contains the oldest rock-cut caves in India, famous for their 'Mauryan Polish' mirror finish?", a: 0, options: ["Barabar Caves", "Udayagiri Caves", "Bhimbetka Shelters", "Pandav Leni"] }
+    const masterQuestions = [
+      { q: "Which Karnataka city is known as the 'Silicon Valley of India'?", a: 2, options: ["Mysuru", "Mangaluru", "Bengaluru", "Hubli"] },
+      { q: "The ruins of the ancient Vijayanagara Empire are located in which Karnataka town?", a: 1, options: ["Badami", "Hampi", "Pattadakal", "Aihole"] },
+      { q: "Which famous waterfall is created by the Sharavathi River in Karnataka?", a: 0, options: ["Jog Falls", "Shivanasamudra", "Dudhsagar", "Abbey Falls"] },
+      { q: "Which classical dance form originated in a village in Andhra Pradesh?", a: 3, options: ["Bharatanatyam", "Kathak", "Odissi", "Kuchipudi"] },
+      { q: "What is the capital city of Andhra Pradesh?", a: 1, options: ["Visakhapatnam", "Amaravati", "Vijayawada", "Kurnool"] },
+      { q: "ISRO's Satish Dhawan Space Centre is located in which state?", a: 0, options: ["Andhra Pradesh", "Kerala", "Tamil Nadu", "Odisha"] },
+      { q: "The 'Statue of Unity', the world's tallest statue, is located in which state?", a: 2, options: ["Maharashtra", "Rajasthan", "Gujarat", "Madhya Pradesh"] },
+      { q: "Which national park in Gujarat is the only natural habitat of the Asiatic lion?", a: 1, options: ["Kanha", "Gir", "Ranthambore", "Bandhavgarh"] },
+      { q: "The Great Rann of Kutch is famous for its vast expanses of what?", a: 0, options: ["Salt marshes", "Sand dunes", "Dense forests", "Coral reefs"] },
+      { q: "Which ancient center of learning in Bihar was one of the first residential universities in the world?", a: 2, options: ["Taxila", "Vikramashila", "Nalanda", "Valabhi"] },
+      { q: "Which site in Bihar contains the oldest surviving rock-cut caves, famous for their 'Mauryan Polish'?", a: 1, options: ["Ajanta Caves", "Barabar Caves", "Ellora Caves", "Elephanta Caves"] },
+      { q: "In which town in Bihar did Gautama Buddha attain enlightenment?", a: 0, options: ["Bodh Gaya", "Sarnath", "Kushinagar", "Lumbini"] },
+      { q: "Which city in Jharkhand is known as the 'Coal Capital of India'?", a: 3, options: ["Ranchi", "Jamshedpur", "Bokaro", "Dhanbad"] },
+      { q: "Jharkhand was carved out of which Indian state in the year 2000?", a: 0, options: ["Bihar", "Madhya Pradesh", "Uttar Pradesh", "Odisha"] },
+      { q: "Which famous Indian cricketer was born in Ranchi, the capital of Jharkhand?", a: 1, options: ["Virat Kohli", "M.S. Dhoni", "Rohit Sharma", "Sachin Tendulkar"] },
+      { q: "What is the capital of India?", a: 1, options: ["Mumbai", "New Delhi", "Kolkata", "Chennai"] },
+      { q: "Which is the longest river flowing entirely within India?", a: 2, options: ["Brahmaputra", "Indus", "Ganga", "Godavari"] },
+      { q: "The historic Charminar is located in which city?", a: 0, options: ["Hyderabad", "Agra", "Delhi", "Lucknow"] },
+      { q: "Which Indian state is known as the 'Land of Five Rivers'?", a: 3, options: ["Haryana", "Himachal Pradesh", "Gujarat", "Punjab"] },
+      { q: "Which mountain range separates Northern India from Southern India?", a: 1, options: ["Himalayas", "Vindhyas", "Western Ghats", "Aravallis"] }
     ];
 
+    let selectedQuestions = [];
     let currentQuestionIndex = 0;
     let score = 0;
     let selectedOption = null;
 
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function initQuiz() {
+      const shuffledMaster = shuffleArray([...masterQuestions]);
+      selectedQuestions = shuffledMaster.slice(0, 6);
+      loadQuestion();
+    }
+
     function loadQuestion() {
-      const qData = questions[currentQuestionIndex];
+      const qData = selectedQuestions[currentQuestionIndex];
       document.getElementById('question-text').textContent = `Q${currentQuestionIndex + 1}: ${qData.q}`;
       const container = document.getElementById('options-container');
       container.innerHTML = '';
@@ -98,36 +167,31 @@
 
     function nextQuestion() {
       if (selectedOption === null) { alert("Select an answer!"); return; }
-      if (selectedOption === questions[currentQuestionIndex].a) score++;
+      if (selectedOption === selectedQuestions[currentQuestionIndex].a) score++;
+      
       currentQuestionIndex++;
-      if (currentQuestionIndex < questions.length) { loadQuestion(); } else { showResults(); }
+      if (currentQuestionIndex < selectedQuestions.length) { 
+        loadQuestion(); 
+      } else { 
+        showResults(); 
+      }
     }
 
     async function showResults() {
       document.getElementById('quiz-box').classList.add('hidden');
       document.getElementById('result-box').classList.remove('hidden');
-      document.getElementById('score-text').textContent = `Final Score: ${score}/5`;
+      document.getElementById('score-text').textContent = `Score: ${score}/6`;
       
-      let lockToOpen = null;
-      if (score >= 1 && score <= 3) {
-        lockToOpen = Math.floor(Math.random() * 4) + 1; // 1, 2, 3, or 4
-      } else if (score === 4) {
-        lockToOpen = Math.floor(Math.random() * 2) + 5; // 5 or 6
-      } else if (score === 5) {
-        // FIXED LOGIC: 50% chance for Door 7 or Door 8
-        lockToOpen = Math.random() < 0.5 ? 7 : 8;
-      }
-
-      if (lockToOpen) {
-        document.getElementById('action-text').textContent = `Reward: Opening Door ${lockToOpen}`;
-        triggerLock(lockToOpen);
+      if (score > 0) {
+        document.getElementById('action-text').textContent = `Magic! Opening Lock ${score} ✨`;
+        triggerLock(score);
       } else {
-        document.getElementById('action-text').textContent = "Score 1 or more to open a door!";
+        document.getElementById('action-text').textContent = "Oops! No correct answers. No locks opened.";
       }
     }
 
     async function triggerLock(num) {
-      status.textContent = `⏳ Sending command for Door ${num}...`;
+      status.textContent = `Connecting to RPi5 for Lock ${num}...`;
       try {
         const response = await fetch('/api/action', {
           method: 'POST',
@@ -135,13 +199,13 @@
           body: JSON.stringify({ button: num, userId })
         });
         const data = await response.json();
-        status.textContent = `✅ Result: ${data.message}`;
+        status.textContent = `SUCCESS: Lock ${num} Opened!`;
       } catch (error) {
-        status.textContent = '❌ Connection Error: ' + error.message;
+        status.textContent = 'Connection Lost!';
       }
     }
 
-    loadQuestion();
+    initQuiz();
   </script>
 </body>
 </html>
