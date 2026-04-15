@@ -107,6 +107,11 @@
     border: 2px solid var(--pink-mid);
     margin-top: 12px;
   }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
 
   .badge {
     display: inline-block;
@@ -199,6 +204,26 @@
     from { opacity:0; transform:translateY(20px); }
     to   { opacity:1; transform:translateY(0); }
   }
+
+  /* Error / info message box */
+  .msg-box {
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .msg-box.error { background:#FFEBEE; color:#C62828; border:1.5px solid #EF9A9A; }
+  .msg-box.info  { background:var(--pink-pale); color:var(--pink-deep); border:1.5px solid var(--grey); }
+  .msg-box.show  { display: block; }
+
+  /* Queue position transition badge */
+  .pos-label {
+    font-size: 13px;
+    color: var(--pink-mid);
+    margin-top: 6px;
+    letter-spacing: .3px;
+  }
 </style>
 </head>
 <body>
@@ -209,8 +234,9 @@
   <div class="screen active" id="screen-scan">
     <h1>🔐 Locker Quiz</h1>
     <p class="subtitle">Enter your name to join the queue</p>
+    <div class="msg-box" id="scan-msg"></div>
     <input type="text" id="user-input" placeholder="Your name or ID…" maxlength="40">
-    <button class="btn btn-primary" onclick="doScan()">Join Queue</button>
+    <button class="btn btn-primary" id="join-btn" onclick="doScan()">Join Queue</button>
   </div>
 
   <!-- SCREEN 2: Waiting in queue -->
@@ -219,11 +245,9 @@
     <h1>You're in line!</h1>
     <div class="queue-num" id="queue-pos">—</div>
     <p class="subtitle">Position in queue</p>
-    <p style="color:var(--pink-mid); font-size:14px; margin-top:8px;">
-      The RPi screen will show your countdown when it's your turn.
-    </p>
+    <p class="pos-label" id="queue-sub">The screen will show your name when it's your turn.</p>
     <div class="spinner"></div>
-    <p style="color:var(--pink-light);font-size:13px;">Checking queue…</p>
+    <p style="color:var(--pink-light);font-size:13px;">Checking your turn…</p>
   </div>
 
   <!-- SCREEN 3: Quiz -->
@@ -245,13 +269,16 @@
       <span class="lbl">CORRECT</span>
     </div>
     <p class="subtitle" id="done-msg">Lockers are opening on the RPi!</p>
-    <button class="btn btn-outline" onclick="restart()">Play Again</button>
+    <!-- No "Play Again" — session is over for this user -->
+    <p style="color:var(--pink-mid);font-size:14px;margin-top:20px;">
+      Thank you for playing! 🎉<br>Pass the device to the next person.
+    </p>
   </div>
 
 </div>
 
 <script>
-// ── Master Questions (20 total, 6 picked randomly each game) ─────────────
+// ── Master Questions (20 total, 6 picked randomly each game) ─────────────────
 const MASTER_QUESTIONS = [
   { q: "Which Karnataka city is known as the 'Silicon Valley of India'?",
     opts: ["Mysuru", "Mangaluru", "Bengaluru", "Hubli"], ans: 2 },
@@ -295,7 +322,7 @@ const MASTER_QUESTIONS = [
     opts: ["Himalayas", "Vindhyas", "Western Ghats", "Aravallis"], ans: 1 },
 ];
 
-// ── Shuffle helper ────────────────────────────────────────────────────────
+// ── Shuffle helper ────────────────────────────────────────────────────────────
 function shuffleArray(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -305,29 +332,46 @@ function shuffleArray(arr) {
   return a;
 }
 
-// Pick 6 random questions each game
 function pickQuestions() {
   return shuffleArray(MASTER_QUESTIONS).slice(0, 6);
 }
 
-// ── State ─────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 let userId        = '';
 let currentQ      = 0;
 let correctCount  = 0;
 let queueInterval = null;
 let QUESTIONS     = [];
+let quizStarted   = false;  // guard against double-starting
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-// ── SCAN ──────────────────────────────────────────────────────────────────
+function showMsg(elId, text, type = 'error') {
+  const el = document.getElementById(elId);
+  el.textContent = text;
+  el.className = `msg-box ${type} show`;
+}
+
+function hideMsg(elId) {
+  const el = document.getElementById(elId);
+  el.className = 'msg-box';
+}
+
+// ── SCAN ──────────────────────────────────────────────────────────────────────
 async function doScan() {
   const val = document.getElementById('user-input').value.trim();
-  if (!val) { alert('Please enter your name.'); return; }
+  if (!val) { showMsg('scan-msg', 'Please enter your name.'); return; }
+
+  hideMsg('scan-msg');
   userId = val;
+
+  const btn = document.getElementById('join-btn');
+  btn.disabled = true;
+  btn.textContent = 'Joining…';
 
   try {
     const r = await fetch('/api/scan', {
@@ -337,43 +381,87 @@ async function doScan() {
     });
     const data = await r.json();
 
+    if (r.status === 403) {
+      // Already played — block them
+      showMsg('scan-msg', '⚠️ You have already played this session. Please wait for a new session.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Join Queue';
+      return;
+    }
+
     if (data.status === 'your_turn') {
       startQuiz();
-    } else {
+    } else if (data.status === 'queued' || data.status === 'already_queued') {
       document.getElementById('queue-pos').textContent = data.queuePos;
       show('screen-queue');
       startPollingQueue();
     }
   } catch(e) {
-    alert('Connection error: ' + e.message);
+    showMsg('scan-msg', 'Connection error: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Join Queue';
   }
 }
 
-// ── QUEUE POLLING ─────────────────────────────────────────────────────────
+// ── QUEUE POLLING ─────────────────────────────────────────────────────────────
 function startPollingQueue() {
-  clearInterval(queueInterval);
-  queueInterval = setInterval(async () => {
-    try {
-      const r = await fetch('/api/status');
-      const data = await r.json();
-      if (data.activeUser === userId) {
-        clearInterval(queueInterval);
-        startQuiz();
-        return;
-      }
-      const pos = data.queue.indexOf(userId) + 1;
-      if (pos > 0) {
-        document.getElementById('queue-pos').textContent = pos;
-      }
-    } catch(_) {}
-  }, 1500);
+  stopPollingQueue();
+  queueInterval = setInterval(pollQueue, 1500);
 }
 
-// ── QUIZ ──────────────────────────────────────────────────────────────────
+function stopPollingQueue() {
+  if (queueInterval) {
+    clearInterval(queueInterval);
+    queueInterval = null;
+  }
+}
+
+async function pollQueue() {
+  try {
+    const r    = await fetch('/api/user-status/' + encodeURIComponent(userId));
+    const data = await r.json();
+
+    if (data.state === 'active') {
+      // It's our turn!
+      stopPollingQueue();
+      if (!quizStarted) startQuiz();
+      return;
+    }
+
+    if (data.state === 'finished') {
+      // Shouldn't happen mid-wait, but guard it
+      stopPollingQueue();
+      return;
+    }
+
+    if (data.state === 'queued' && data.queuePos !== null) {
+      document.getElementById('queue-pos').textContent = data.queuePos;
+      const total = data.queuePos;
+      document.getElementById('queue-sub').textContent =
+        total === 1
+          ? 'You are next! Get ready…'
+          : `${total - 1} person(s) ahead of you.`;
+    }
+
+    if (data.state === 'none') {
+      // Somehow no longer in the system — rejoin
+      stopPollingQueue();
+      show('screen-scan');
+      document.getElementById('join-btn').disabled = false;
+      document.getElementById('join-btn').textContent = 'Join Queue';
+    }
+
+  } catch(_) {
+    // Network hiccup — keep trying silently
+  }
+}
+
+// ── QUIZ ──────────────────────────────────────────────────────────────────────
 function startQuiz() {
-  QUESTIONS    = pickQuestions();   // fresh random 6 questions every game
-  currentQ     = 0;
-  correctCount = 0;
+  quizStarted   = true;
+  QUESTIONS     = pickQuestions();
+  currentQ      = 0;
+  correctCount  = 0;
   show('screen-quiz');
   renderQuestion();
 }
@@ -416,6 +504,7 @@ function selectAnswer(idx, btn) {
 }
 
 async function finishQuiz() {
+  // Submit score to server
   try {
     await fetch('/api/score', {
       method: 'POST',
@@ -430,13 +519,6 @@ async function finishQuiz() {
       ? `🎉 ${correctCount} locker(s) are opening on the RPi!`
       : "No lockers open this time. Better luck next round!";
   show('screen-done');
-}
-
-// ── RESTART ───────────────────────────────────────────────────────────────
-function restart() {
-  userId = '';
-  document.getElementById('user-input').value = '';
-  show('screen-scan');
 }
 </script>
 </body>
