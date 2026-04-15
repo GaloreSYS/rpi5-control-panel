@@ -1,129 +1,107 @@
 const express = require('express');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid'); // Optional: npm install uuid
+const app  = express();
+const port = 3000;
 
-const app = express();
-
-// --- IN-MEMORY DATABASE REPLACEMENT ---
-// This replaces the Firestore 'lockQueue' collection
-let lockQueue = []; 
-
-// 2. MIDDLEWARE
 app.use(express.json());
-app.use(express.static('public')); 
+app.use(express.static('public'));
 
-// 3. SERVE FRONTEND
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// ─── In-memory state ────────────────────────────────────────────────────────
+let queue          = [];   // [{ userId, scannedAt }]
+let activeUser     = null; // userId currently playing
+let pendingCommand = null; // next command waiting for RPi to pick up
+let commandIdSeq   = 0;
+
+function nextId() { return ++commandIdSeq; }
+
+// ─── Helper: push a command for the RPi ──────────────────────────────────────
+function pushCommand(type, extra = {}) {
+  pendingCommand = { id: nextId(), type, ...extra };
+}
+
+// ─── 1. User scans QR code ────────────────────────────────────────────────
+// Called by the quiz web-app when a user scans in
+// POST /api/scan   body: { userId }
+app.post('/api/scan', (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+
+  // Already in queue or playing?
+  if (activeUser === userId || queue.find(u => u.userId === userId)) {
+    const pos = activeUser === userId ? 0 :
+                queue.findIndex(u => u.userId === userId) + 1;
+    return res.json({ status: 'already_queued', queuePos: pos });
+  }
+
+  queue.push({ userId, scannedAt: Date.now() });
+  const pos = queue.length; // 1-based position
+
+  if (!activeUser) {
+    // Nobody playing — go straight to active
+    activeUser = userId;
+    queue.shift();
+    pushCommand('play', { userId });
+    return res.json({ status: 'your_turn', queuePos: 1 });
+  }
+
+  // Someone else is playing — show queue position
+  pushCommand('scan', { userId, queuePos: pos });
+  res.json({ status: 'queued', queuePos: pos });
 });
 
-// 4. API: CHECK QUEUE STATUS (For Website)
-app.get('/api/status', (req, res) => {
-  try {
-    const userId = req.query.userId;
-    
-    const pendingCommands = lockQueue.filter(cmd => cmd.status === 'pending');
-    const processingCommand = lockQueue.find(cmd => cmd.status === 'processing');
-    
-    // Find user's position in the pending queue
-    const userIndex = pendingCommands.findIndex(cmd => cmd.userId === userId);
-    const yourPosition = userIndex !== -1 ? userIndex + 1 : 0;
-    
-    res.json({
-      isProcessing: !!processingCommand,
-      queueLength: pendingCommands.length,
-      currentUser: processingCommand ? processingCommand.userId : null,
-      yourPosition
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// ─── 2. Quiz finished — submit score ──────────────────────────────────────
+// POST /api/score   body: { userId, score }
+app.post('/api/score', (req, res) => {
+  const { userId, score } = req.body;
+  if (!userId || score === undefined)
+    return res.status(400).json({ error: 'userId and score required' });
+
+  if (activeUser !== userId)
+    return res.status(409).json({ error: 'Not the active user' });
+
+  const s = Math.max(0, Math.min(6, parseInt(score)));
+  pushCommand('score', { userId, score: s });
+  res.json({ status: 'ok', score: s });
 });
 
-// 5. API: ADD TO QUEUE (For Website)
-app.post('/api/action', async (req, res) => {
-  const { button, userId } = req.body;
-  if (!userId || button < 1 || button > 8) {
-    return res.status(400).json({ success: false, message: 'Invalid input' });
-  }
-  
-  const commandId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-  
-  const newCommand = {
-    id: commandId,
-    button,
-    userId,
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  };
-
-  lockQueue.push(newCommand);
-  
-  try {
-    // Polling simulation for the 'completed' status (Replaces Firestore onSnapshot)
-    const result = await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        clearInterval(poll);
-        reject(new Error('Timeout: RPi5 did not respond'));
-      }, 60000);
-
-      const poll = setInterval(() => {
-        const cmd = lockQueue.find(c => c.id === commandId);
-        if (cmd && cmd.status === 'completed') {
-          clearInterval(poll);
-          clearTimeout(timeout);
-          resolve(cmd);
-        } else if (cmd && cmd.status === 'failed') {
-          clearInterval(poll);
-          clearTimeout(timeout);
-          reject(new Error('Action failed on RPi5'));
-        }
-      }, 500);
-    });
-
-    res.json({ success: true, message: `Lock ${button} opened`, timestamp: result.completedAt });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// 6. RPi5: GET NEXT COMMAND
+// ─── 3. RPi polls for next command ────────────────────────────────────────
 app.get('/api/rpi/next-command', (req, res) => {
-  const nextIndex = lockQueue.findIndex(cmd => cmd.status === 'pending');
-  
-  if (nextIndex === -1) return res.json({ command: null });
-  
-  // Update status to processing
-  lockQueue[nextIndex].status = 'processing';
-  lockQueue[nextIndex].processingAt = new Date().toISOString();
-  
-  const cmd = lockQueue[nextIndex];
-  res.json({ command: { id: cmd.id, button: cmd.button, userId: cmd.userId } });
-});
-
-// 7. RPi5: MARK AS COMPLETE
-app.post('/api/rpi/complete', (req, res) => {
-  const { commandId, success, error } = req.body;
-  const cmdIndex = lockQueue.findIndex(cmd => cmd.id === commandId);
-  
-  if (cmdIndex !== -1) {
-    lockQueue[cmdIndex].status = success ? 'completed' : 'failed';
-    lockQueue[cmdIndex].completedAt = new Date().toISOString();
-    lockQueue[cmdIndex].error = error || null;
-
-    // Optional: Clean up memory by removing very old completed items after a delay
-    setTimeout(() => {
-        lockQueue = lockQueue.filter(cmd => cmd.id !== commandId);
-    }, 10000);
-
-    return res.json({ success: true });
+  if (pendingCommand) {
+    res.json({ command: pendingCommand });
+  } else {
+    res.json({ command: null });
   }
-  
-  res.status(404).json({ error: "Command not found" });
 });
 
-// 8. START SERVER
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server live on port ${PORT} (Direct Mode - No Firebase)`);
+// ─── 4. RPi confirms command was processed ────────────────────────────────
+// POST /api/rpi/complete   body: { commandId }
+app.post('/api/rpi/complete', (req, res) => {
+  const { commandId } = req.body;
+  if (pendingCommand && pendingCommand.id === commandId) {
+    pendingCommand = null;
+  }
+  res.json({ ok: true });
+});
+
+// ─── 5. RPi notifies that a turn ended (timeout or locks done) ────────────
+// POST /api/rpi/turn-done   body: { userId }
+app.post('/api/rpi/turn-done', (req, res) => {
+  const { userId } = req.body;
+  if (activeUser === userId) activeUser = null;
+
+  if (queue.length > 0) {
+    const next = queue.shift();
+    activeUser = next.userId;
+    pushCommand('play', { userId: next.userId });
+  }
+  res.json({ ok: true, next: activeUser });
+});
+
+// ─── 6. Queue status (for debugging / web display) ───────────────────────
+app.get('/api/status', (req, res) => {
+  res.json({ activeUser, queue: queue.map(u => u.userId) });
+});
+
+// ─── Start ───────────────────────────────────────────────────────────────
+app.listen(port, () => {
+  console.log(`Lock server running at http://localhost:${port}`);
 });
