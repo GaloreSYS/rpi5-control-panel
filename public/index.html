@@ -1,211 +1,443 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pink & Creamy Quiz Control</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      /* Creamy White to Soft Pink Gradient */
-      background: linear-gradient(135deg, #fff5f6 0%, #ffd1dc 100%);
-      min-height: 100vh;
-      display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locker Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lato:wght@300;400;700&display=swap');
 
-    .container {
-      max-width: 500px; width: 100%; 
-      background: #ffffff; /* Pure White Container */
-      padding: 40px; border-radius: 30px;
-      box-shadow: 0 15px 35px rgba(255, 182, 193, 0.4); 
-      color: #5d5d5d; text-align: center;
-      border: 2px solid #ffdae0;
-    }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    h1 { 
-      margin-bottom: 25px; font-size: 28px; 
-      color: #ff69b4; /* Hot Pink Title */
-      text-transform: capitalize; 
-    }
+  :root {
+    --pink-deep:  #C2185B;
+    --pink-mid:   #D87093;
+    --pink-light: #F48FB1;
+    --pink-pale:  #FCE4EC;
+    --pink-card:  #FFF0F5;
+    --white:      #FFFFFF;
+    --grey:       #F8BBD0;
+  }
 
-    .quiz-container { text-align: left; margin-bottom: 20px; }
+  body {
+    font-family: 'Lato', sans-serif;
+    background: linear-gradient(145deg, var(--pink-pale) 0%, var(--white) 60%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
 
-    .question { 
-      font-size: 19px; margin-bottom: 20px; font-weight: 600; 
-      line-height: 1.5; color: #4a4a4a; min-height: 60px;
-    }
+  .card {
+    background: var(--white);
+    border-radius: 32px;
+    padding: 40px 36px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 8px 48px rgba(194,24,91,0.12);
+    border: 2px solid var(--grey);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--pink-pale), transparent 70%);
+    pointer-events: none;
+  }
 
-    .option-btn {
-      display: block; width: 100%; padding: 15px; margin: 12px 0;
-      background: #fffafa; /* Creamy White Button */
-      border: 2px solid #ffeff2; border-radius: 15px;
-      color: #ff69b4; font-weight: 600; cursor: pointer; 
-      transition: all 0.3s ease; text-align: left; font-size: 16px;
-    }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(24px, 6vw, 34px);
+    color: var(--pink-deep);
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    color: var(--pink-mid);
+    font-size: 15px;
+    font-weight: 300;
+    margin-bottom: 32px;
+    letter-spacing: .5px;
+  }
 
-    .option-btn:hover { 
-      background: #ffe4e8; 
-      transform: scale(1.02);
-      border-color: #ffb6c1;
-    }
+  input[type="text"] {
+    width: 100%;
+    border: 2px solid var(--grey);
+    border-radius: 16px;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-family: 'Lato', sans-serif;
+    outline: none;
+    color: var(--pink-deep);
+    background: var(--pink-card);
+    transition: border-color .2s;
+    margin-bottom: 16px;
+  }
+  input[type="text"]:focus { border-color: var(--pink-mid); }
 
-    .option-btn.selected { 
-      background: #ff69b4; 
-      color: white; 
-      border-color: #ff1493;
-      box-shadow: 0 5px 15px rgba(255, 105, 180, 0.3);
-    }
+  .btn {
+    display: inline-block;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 18px;
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    letter-spacing: .5px;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--pink-mid), var(--pink-deep));
+    color: var(--white);
+    box-shadow: 0 4px 20px rgba(194,24,91,.30);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 28px rgba(194,24,91,.40); }
+  .btn-outline {
+    background: transparent;
+    color: var(--pink-deep);
+    border: 2px solid var(--pink-mid);
+    margin-top: 12px;
+  }
 
-    .next-btn {
-      margin-top: 20px; padding: 16px; border-radius: 15px; border: none;
-      background: #ff69b4; color: #fff; font-size: 18px; 
-      font-weight: bold; cursor: pointer; width: 100%;
-      box-shadow: 0 8px 20px rgba(255, 105, 180, 0.3);
-      transition: background 0.3s;
-    }
+  .badge {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    margin-bottom: 20px;
+  }
+  .badge-wait  { background: var(--pink-pale); color: var(--pink-deep); }
+  .badge-play  { background: var(--pink-deep); color: var(--white); }
+  .badge-done  { background: #E8F5E9; color: #2E7D32; }
 
-    .next-btn:hover { background: #ff1493; }
+  .queue-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 72px;
+    font-weight: 900;
+    color: var(--pink-mid);
+    line-height: 1;
+    margin: 8px 0;
+  }
 
-    .status { 
-      margin-top: 25px; font-size: 13px; font-weight: bold;
-      color: #ffb6c1; letter-spacing: 1px;
-    }
+  .answer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .answer-btn {
+    padding: 14px 10px;
+    border-radius: 16px;
+    border: 2px solid var(--grey);
+    background: var(--pink-card);
+    color: var(--pink-deep);
+    font-family: 'Lato', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .1s;
+    text-align: center;
+  }
+  .answer-btn:hover  { background: var(--pink-pale); border-color: var(--pink-light); }
+  .answer-btn.correct { background: #E8F5E9 !important; border-color: #66BB6A !important; color: #2E7D32 !important; }
+  .answer-btn.wrong   { background: #FFEBEE !important; border-color: #EF9A9A !important; color: #C62828 !important; }
+  .answer-btn:disabled { cursor: default; }
 
-    .hidden { display: none; }
+  .score-circle {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--pink-mid), var(--pink-deep));
+    color: var(--white);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin: 16px auto;
+    box-shadow: 0 4px 24px rgba(194,24,91,.35);
+  }
+  .score-circle .num { font-family:'Playfair Display',serif; font-size:40px; font-weight:900; line-height:1; }
+  .score-circle .lbl { font-size:12px; opacity:.85; letter-spacing:.5px; }
 
-    #score-text { color: #ff69b4; font-size: 32px; margin-bottom: 10px; }
-  </style>
+  .q-counter {
+    font-size: 13px;
+    color: var(--pink-light);
+    letter-spacing: .5px;
+    margin-bottom: 12px;
+  }
+  .question-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--pink-deep);
+    margin-bottom: 4px;
+    line-height: 1.35;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid var(--grey);
+    border-top-color: var(--pink-mid);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card { animation: fadeUp .4s ease both; }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>🌸 Master Quiz</h1>
-    
-    <div id="quiz-box">
-      <div class="quiz-container">
-        <p id="question-text" class="question"></p>
-        <div id="options-container"></div>
-      </div>
-      <button id="next-btn" class="next-btn" onclick="nextQuestion()">Next Question</button>
-    </div>
 
-    <div id="result-box" class="hidden">
-      <h2 id="score-text"></h2>
-      <p id="action-text" style="margin: 15px 0; font-size: 18px; font-weight: bold; color: #ff1493;"></p>
-      <button class="next-btn" onclick="location.reload()">Try Again 🔄</button>
-    </div>
+<div class="card">
 
-    <div class="status" id="status">Ready To Play</div>
+  <!-- SCREEN 1: Enter name -->
+  <div class="screen active" id="screen-scan">
+    <h1>🔐 Locker Quiz</h1>
+    <p class="subtitle">Enter your name to join the queue</p>
+    <input type="text" id="user-input" placeholder="Your name or ID…" maxlength="40">
+    <button class="btn btn-primary" onclick="doScan()">Join Queue</button>
   </div>
 
-  <script>
-    const userId = 'user_' + Math.random().toString(36).substr(2, 9);
-    const status = document.getElementById('status');
-    
-    const masterQuestions = [
-      { q: "Which Karnataka city is known as the 'Silicon Valley of India'?", a: 2, options: ["Mysuru", "Mangaluru", "Bengaluru", "Hubli"] },
-      { q: "The ruins of the ancient Vijayanagara Empire are located in which Karnataka town?", a: 1, options: ["Badami", "Hampi", "Pattadakal", "Aihole"] },
-      { q: "Which famous waterfall is created by the Sharavathi River in Karnataka?", a: 0, options: ["Jog Falls", "Shivanasamudra", "Dudhsagar", "Abbey Falls"] },
-      { q: "Which classical dance form originated in a village in Andhra Pradesh?", a: 3, options: ["Bharatanatyam", "Kathak", "Odissi", "Kuchipudi"] },
-      { q: "What is the capital city of Andhra Pradesh?", a: 1, options: ["Visakhapatnam", "Amaravati", "Vijayawada", "Kurnool"] },
-      { q: "ISRO's Satish Dhawan Space Centre is located in which state?", a: 0, options: ["Andhra Pradesh", "Kerala", "Tamil Nadu", "Odisha"] },
-      { q: "The 'Statue of Unity', the world's tallest statue, is located in which state?", a: 2, options: ["Maharashtra", "Rajasthan", "Gujarat", "Madhya Pradesh"] },
-      { q: "Which national park in Gujarat is the only natural habitat of the Asiatic lion?", a: 1, options: ["Kanha", "Gir", "Ranthambore", "Bandhavgarh"] },
-      { q: "The Great Rann of Kutch is famous for its vast expanses of what?", a: 0, options: ["Salt marshes", "Sand dunes", "Dense forests", "Coral reefs"] },
-      { q: "Which ancient center of learning in Bihar was one of the first residential universities in the world?", a: 2, options: ["Taxila", "Vikramashila", "Nalanda", "Valabhi"] },
-      { q: "Which site in Bihar contains the oldest surviving rock-cut caves, famous for their 'Mauryan Polish'?", a: 1, options: ["Ajanta Caves", "Barabar Caves", "Ellora Caves", "Elephanta Caves"] },
-      { q: "In which town in Bihar did Gautama Buddha attain enlightenment?", a: 0, options: ["Bodh Gaya", "Sarnath", "Kushinagar", "Lumbini"] },
-      { q: "Which city in Jharkhand is known as the 'Coal Capital of India'?", a: 3, options: ["Ranchi", "Jamshedpur", "Bokaro", "Dhanbad"] },
-      { q: "Jharkhand was carved out of which Indian state in the year 2000?", a: 0, options: ["Bihar", "Madhya Pradesh", "Uttar Pradesh", "Odisha"] },
-      { q: "Which famous Indian cricketer was born in Ranchi, the capital of Jharkhand?", a: 1, options: ["Virat Kohli", "M.S. Dhoni", "Rohit Sharma", "Sachin Tendulkar"] },
-      { q: "What is the capital of India?", a: 1, options: ["Mumbai", "New Delhi", "Kolkata", "Chennai"] },
-      { q: "Which is the longest river flowing entirely within India?", a: 2, options: ["Brahmaputra", "Indus", "Ganga", "Godavari"] },
-      { q: "The historic Charminar is located in which city?", a: 0, options: ["Hyderabad", "Agra", "Delhi", "Lucknow"] },
-      { q: "Which Indian state is known as the 'Land of Five Rivers'?", a: 3, options: ["Haryana", "Himachal Pradesh", "Gujarat", "Punjab"] },
-      { q: "Which mountain range separates Northern India from Southern India?", a: 1, options: ["Himalayas", "Vindhyas", "Western Ghats", "Aravallis"] }
-    ];
+  <!-- SCREEN 2: Waiting in queue -->
+  <div class="screen" id="screen-queue">
+    <span class="badge badge-wait">WAITING</span>
+    <h1>You're in line!</h1>
+    <div class="queue-num" id="queue-pos">—</div>
+    <p class="subtitle">Position in queue</p>
+    <p style="color:var(--pink-mid); font-size:14px; margin-top:8px;">
+      The RPi screen will show your countdown when it's your turn.
+    </p>
+    <div class="spinner"></div>
+    <p style="color:var(--pink-light);font-size:13px;">Checking queue…</p>
+  </div>
 
-    let selectedQuestions = [];
-    let currentQuestionIndex = 0;
-    let score = 0;
-    let selectedOption = null;
+  <!-- SCREEN 3: Quiz -->
+  <div class="screen" id="screen-quiz">
+    <span class="badge badge-play">YOUR TURN</span>
+    <h1>Answer Fast!</h1>
+    <p class="subtitle">Each correct answer opens one locker</p>
+    <div class="q-counter" id="q-counter">Question 1 / 6</div>
+    <p class="question-text" id="q-text">Loading…</p>
+    <div class="answer-grid" id="answer-grid"></div>
+  </div>
 
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+  <!-- SCREEN 4: Done -->
+  <div class="screen" id="screen-done">
+    <span class="badge badge-done">COMPLETE</span>
+    <h1>Nice work!</h1>
+    <div class="score-circle">
+      <span class="num" id="final-score">0</span>
+      <span class="lbl">CORRECT</span>
+    </div>
+    <p class="subtitle" id="done-msg">Lockers are opening on the RPi!</p>
+    <button class="btn btn-outline" onclick="restart()">Play Again</button>
+  </div>
+
+</div>
+
+<script>
+// ── Master Questions (20 total, 6 picked randomly each game) ─────────────
+const MASTER_QUESTIONS = [
+  { q: "Which Karnataka city is known as the 'Silicon Valley of India'?",
+    opts: ["Mysuru", "Mangaluru", "Bengaluru", "Hubli"], ans: 2 },
+  { q: "The ruins of the ancient Vijayanagara Empire are located in which Karnataka town?",
+    opts: ["Badami", "Hampi", "Pattadakal", "Aihole"], ans: 1 },
+  { q: "Which famous waterfall is created by the Sharavathi River in Karnataka?",
+    opts: ["Jog Falls", "Shivanasamudra", "Dudhsagar", "Abbey Falls"], ans: 0 },
+  { q: "Which classical dance form originated in a village in Andhra Pradesh?",
+    opts: ["Bharatanatyam", "Kathak", "Odissi", "Kuchipudi"], ans: 3 },
+  { q: "What is the capital city of Andhra Pradesh?",
+    opts: ["Visakhapatnam", "Amaravati", "Vijayawada", "Kurnool"], ans: 1 },
+  { q: "ISRO's Satish Dhawan Space Centre is located in which state?",
+    opts: ["Andhra Pradesh", "Kerala", "Tamil Nadu", "Odisha"], ans: 0 },
+  { q: "The 'Statue of Unity', the world's tallest statue, is located in which state?",
+    opts: ["Maharashtra", "Rajasthan", "Gujarat", "Madhya Pradesh"], ans: 2 },
+  { q: "Which national park in Gujarat is the only natural habitat of the Asiatic lion?",
+    opts: ["Kanha", "Gir", "Ranthambore", "Bandhavgarh"], ans: 1 },
+  { q: "The Great Rann of Kutch is famous for its vast expanses of what?",
+    opts: ["Salt marshes", "Sand dunes", "Dense forests", "Coral reefs"], ans: 0 },
+  { q: "Which ancient center of learning in Bihar was one of the first residential universities in the world?",
+    opts: ["Taxila", "Vikramashila", "Nalanda", "Valabhi"], ans: 2 },
+  { q: "Which site in Bihar contains the oldest surviving rock-cut caves, famous for their 'Mauryan Polish'?",
+    opts: ["Ajanta Caves", "Barabar Caves", "Ellora Caves", "Elephanta Caves"], ans: 1 },
+  { q: "In which town in Bihar did Gautama Buddha attain enlightenment?",
+    opts: ["Bodh Gaya", "Sarnath", "Kushinagar", "Lumbini"], ans: 0 },
+  { q: "Which city in Jharkhand is known as the 'Coal Capital of India'?",
+    opts: ["Ranchi", "Jamshedpur", "Bokaro", "Dhanbad"], ans: 3 },
+  { q: "Jharkhand was carved out of which Indian state in the year 2000?",
+    opts: ["Bihar", "Madhya Pradesh", "Uttar Pradesh", "Odisha"], ans: 0 },
+  { q: "Which famous Indian cricketer was born in Ranchi, the capital of Jharkhand?",
+    opts: ["Virat Kohli", "M.S. Dhoni", "Rohit Sharma", "Sachin Tendulkar"], ans: 1 },
+  { q: "What is the capital of India?",
+    opts: ["Mumbai", "New Delhi", "Kolkata", "Chennai"], ans: 1 },
+  { q: "Which is the longest river flowing entirely within India?",
+    opts: ["Brahmaputra", "Indus", "Ganga", "Godavari"], ans: 3 },
+  { q: "The historic Charminar is located in which city?",
+    opts: ["Hyderabad", "Agra", "Delhi", "Lucknow"], ans: 0 },
+  { q: "Which Indian state is known as the 'Land of Five Rivers'?",
+    opts: ["Haryana", "Himachal Pradesh", "Gujarat", "Punjab"], ans: 3 },
+  { q: "Which mountain range separates Northern India from Southern India?",
+    opts: ["Himalayas", "Vindhyas", "Western Ghats", "Aravallis"], ans: 1 },
+];
+
+// ── Shuffle helper ────────────────────────────────────────────────────────
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Pick 6 random questions each game
+function pickQuestions() {
+  return shuffleArray(MASTER_QUESTIONS).slice(0, 6);
+}
+
+// ── State ─────────────────────────────────────────────────────────────────
+let userId        = '';
+let currentQ      = 0;
+let correctCount  = 0;
+let queueInterval = null;
+let QUESTIONS     = [];
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── SCAN ──────────────────────────────────────────────────────────────────
+async function doScan() {
+  const val = document.getElementById('user-input').value.trim();
+  if (!val) { alert('Please enter your name.'); return; }
+  userId = val;
+
+  try {
+    const r = await fetch('/api/scan', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId })
+    });
+    const data = await r.json();
+
+    if (data.status === 'your_turn') {
+      startQuiz();
+    } else {
+      document.getElementById('queue-pos').textContent = data.queuePos;
+      show('screen-queue');
+      startPollingQueue();
+    }
+  } catch(e) {
+    alert('Connection error: ' + e.message);
+  }
+}
+
+// ── QUEUE POLLING ─────────────────────────────────────────────────────────
+function startPollingQueue() {
+  clearInterval(queueInterval);
+  queueInterval = setInterval(async () => {
+    try {
+      const r = await fetch('/api/status');
+      const data = await r.json();
+      if (data.activeUser === userId) {
+        clearInterval(queueInterval);
+        startQuiz();
+        return;
       }
-      return array;
-    }
-
-    function initQuiz() {
-      const shuffledMaster = shuffleArray([...masterQuestions]);
-      selectedQuestions = shuffledMaster.slice(0, 6);
-      loadQuestion();
-    }
-
-    function loadQuestion() {
-      const qData = selectedQuestions[currentQuestionIndex];
-      document.getElementById('question-text').textContent = `Q${currentQuestionIndex + 1}: ${qData.q}`;
-      const container = document.getElementById('options-container');
-      container.innerHTML = '';
-      
-      qData.options.forEach((opt, index) => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.textContent = opt;
-        btn.onclick = () => {
-          document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-          btn.classList.add('selected');
-          selectedOption = index;
-        };
-        container.appendChild(btn);
-      });
-      selectedOption = null;
-    }
-
-    function nextQuestion() {
-      if (selectedOption === null) { alert("Select an answer!"); return; }
-      if (selectedOption === selectedQuestions[currentQuestionIndex].a) score++;
-      
-      currentQuestionIndex++;
-      if (currentQuestionIndex < selectedQuestions.length) { 
-        loadQuestion(); 
-      } else { 
-        showResults(); 
+      const pos = data.queue.indexOf(userId) + 1;
+      if (pos > 0) {
+        document.getElementById('queue-pos').textContent = pos;
       }
-    }
+    } catch(_) {}
+  }, 1500);
+}
 
-    async function showResults() {
-      document.getElementById('quiz-box').classList.add('hidden');
-      document.getElementById('result-box').classList.remove('hidden');
-      document.getElementById('score-text').textContent = `Score: ${score}/6`;
-      
-      if (score > 0) {
-        document.getElementById('action-text').textContent = `Magic! Opening Lock ${score} ✨`;
-        triggerLock(score);
-      } else {
-        document.getElementById('action-text').textContent = "Oops! No correct answers. No locks opened.";
-      }
-    }
+// ── QUIZ ──────────────────────────────────────────────────────────────────
+function startQuiz() {
+  QUESTIONS    = pickQuestions();   // fresh random 6 questions every game
+  currentQ     = 0;
+  correctCount = 0;
+  show('screen-quiz');
+  renderQuestion();
+}
 
-    async function triggerLock(num) {
-      status.textContent = `Connecting to RPi5 for Lock ${num}...`;
-      try {
-        const response = await fetch('/api/action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ button: num, userId })
-        });
-        const data = await response.json();
-        status.textContent = `SUCCESS: Lock ${num} Opened!`;
-      } catch (error) {
-        status.textContent = 'Connection Lost!';
-      }
-    }
+function renderQuestion() {
+  if (currentQ >= QUESTIONS.length) { finishQuiz(); return; }
 
-    initQuiz();
-  </script>
+  const { q, opts } = QUESTIONS[currentQ];
+  document.getElementById('q-counter').textContent =
+    `Question ${currentQ + 1} / ${QUESTIONS.length}`;
+  document.getElementById('q-text').textContent = q;
+
+  const grid = document.getElementById('answer-grid');
+  grid.innerHTML = '';
+  opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className   = 'answer-btn';
+    btn.textContent = opt;
+    btn.onclick = () => selectAnswer(i, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function selectAnswer(idx, btn) {
+  const { ans } = QUESTIONS[currentQ];
+  const grid    = document.getElementById('answer-grid');
+  const btns    = grid.querySelectorAll('.answer-btn');
+
+  btns.forEach(b => b.disabled = true);
+
+  if (idx === ans) {
+    btn.classList.add('correct');
+    correctCount++;
+  } else {
+    btn.classList.add('wrong');
+    btns[ans].classList.add('correct');
+  }
+
+  setTimeout(() => { currentQ++; renderQuestion(); }, 900);
+}
+
+async function finishQuiz() {
+  try {
+    await fetch('/api/score', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId, score: correctCount })
+    });
+  } catch(_) {}
+
+  document.getElementById('final-score').textContent = correctCount;
+  document.getElementById('done-msg').textContent =
+    correctCount > 0
+      ? `🎉 ${correctCount} locker(s) are opening on the RPi!`
+      : "No lockers open this time. Better luck next round!";
+  show('screen-done');
+}
+
+// ── RESTART ───────────────────────────────────────────────────────────────
+function restart() {
+  userId = '';
+  document.getElementById('user-input').value = '';
+  show('screen-scan');
+}
+</script>
 </body>
 </html>
